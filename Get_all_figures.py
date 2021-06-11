@@ -44,6 +44,8 @@ def run(opti,rho_cen):
     phi_dot = tov.Psi
     radiusStar = tov.radiusStar
     mass_ADM = tov.massADM / (1.989*10**30) # in solar mass
+    Ricci = tov.R
+    Lagrangian = tov.Lm
     a_dot = (-a[1:-2]+a[2:-1])/(r[2:-1]-r[1:-2])
     b_dot = (-b[1:-2]+b[2:-1])/(r[2:-1]-r[1:-2])
     f_a = -a_dot*r[1:-2]*r[1:-2]/1000
@@ -89,6 +91,7 @@ def run(opti,rho_cen):
     phi_u= (1-r_m/r_2)**exp_phi
     drho_dr_u = (1-r_m/r_2)**exp_rho+exp_rho*(r_m/r_2)*(1-r_m/r_2)**(exp_rho-1)
     b_u = ((1-r_m/r_2)**exp_b)*(drho_dr_u)**(-2)
+
     r_lim = 80000
     if option == 1:
         couleur = (0.85,0.325,0.098)
@@ -97,13 +100,13 @@ def run(opti,rho_cen):
         couleur = (0.929,0.694,0.125)
         nom = 'c -+'
 
-    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen)
+    return (r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen, Ricci, Lagrangian)
 
 
 # In[3]:
 
 
-def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen):
+def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen, Ricci, Lagrangian):
     plt.plot(r*1e-3,a,label=f'a: numerical ({comment})',color=(0.,0.447,0.741))
     plt.plot(rho_u*1e-3,a_u,linestyle='dashed',label = f'a: {nom}',color = couleur)
     plt.axvline(x=radiusStar*1e-3, color='r')
@@ -241,13 +244,22 @@ def make_plots(option,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusS
     plt.legend()
     plt.savefig(f'figures/diff_a_b_phi_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
     plt.show()
+
+    plt.plot(r*1e-3, Ricci, label='Ricci scalar from $g_{tt}$ and $g_{rr}$')
+    plt.plot(r*1e-3, -kappa*Lagrangian/phi**0.5, label=r'$-\kappa\frac{L_m}{\sqrt{\phi}}$')
+    plt.axvline(x=radiusStar*1e-3, color='r')
+    plt.legend()
+    plt.xlabel('Radius r (km)')
+    plt.ylabel('$m^{-2}$', fontsize=12)
+    plt.savefig(f'figures/curvature_{descr}_{rho_cen:.0f}_{mass_ADM:.1f}.png', dpi = 200)
+    plt.show()
 # In[4]:
 
 
-for i in [2]:
+for i in [1]:
     for k in [500]:
-        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen  = run(i,k)
-        make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k)
+        r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,rho_cen, Ricci, Lagrangian  = run(i,k)
+        make_plots(i,r,a,b,phi,rho_u,a_u,phi_u,b_u,couleur,nom, comment,radiusStar,r_lim,descr,mass_ADM,k, Ricci, Lagrangian)
 
 
 # In[ ]:

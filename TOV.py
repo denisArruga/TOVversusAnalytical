@@ -7,6 +7,7 @@ from numpy import linalg as npla
 from scipy.integrate import solve_ivp
 from scipy.integrate import cumtrapz as integcum
 from scipy.integrate import trapz as integ
+from scipy.interpolate import interp1d, splrep
 
 c2 = cst.c**2
 kappa = 8*np.pi*cst.G/c2**2
@@ -145,6 +146,8 @@ class TOV():
         self.g_rr_ext = 0
         self.r_ext = 0
         self.phi_inf = 0
+        self.R = 0
+        self.Lm = 0
 
     def Compute(self):
         if self.log_active:
@@ -161,11 +164,12 @@ class TOV():
         y0 = [self.initPressure,self.initMass,self.initPhi,self.initPsi]
         if self.log_active:
             print('y0 = ', y0,'\n')
-        r = np.linspace(0.01,self.radiusMax_in,self.Npoint)
+        r_min = 0.000000001
+        r = np.linspace(r_min,self.radiusMax_in,self.Npoint)
         if self.log_active:
-            print('radius min ',0.01)
+            print('radius min ',r_min)
             print('radius max ',self.radiusMax_in)
-        sol = solve_ivp(dy_dr, [0.01, self.radiusMax_in], y0, method='RK45',t_eval=r ,args=(self.option,self.dilaton_active))
+        sol = solve_ivp(dy_dr, [r_min, self.radiusMax_in], y0, method='RK45',t_eval=r ,args=(self.option,self.dilaton_active))
         # condition for Pressure = 0
         '''
         self.g_rr = b(sol.t, sol.y[1])
@@ -213,9 +217,20 @@ class TOV():
             # Compute metrics
             self.g_rr = b(self.radius, self.mass)
             a_dot_a = adota(self.radius, self.pressure, self.mass, self.Psi, self.Phi)
-            #plt.plot(self.radius, np.concatenate([[0.0], integcum(a_dot_a,self.radius)]))
-            #plt.show()
+            b_dot_b = bdotb(self.radius, self.pressure, self.mass, self.Psi, self.Phi, self.option)
             self.g_tt = np.exp(np.concatenate([[0.0], integcum(a_dot_a,self.radius)])-integ(a_dot_a,self.radius))
+            self.Lm = Lagrangian(self.pressure, self.option)
+            #compute Ricci scalar
+            a_dot = a_dot_a*self.g_tt
+            a_2dot = (a_dot[1:-1]-a_dot[0:-2])/(self.radius[1:-1]-self.radius[0:-2])
+            A = self.g_tt[0:-2]
+            B = self.g_rr[0:-2]
+            r = self.radius[0:-2]
+            a_dot_a = a_dot_a[0:-2]
+            b_dot_b = b_dot_b[0:-2]
+            R = -(2/B)*(a_2dot/(2*A)-0.5*a_dot_a**2+0.5*(0.5*a_dot_a+2/r)*(a_dot_a-b_dot_b)+(1-B)/(r**2))
+            R_interpol = interp1d(self.radius[0:-2], R, fill_value="extrapolate")
+            self.R = R_interpol(self.radius)
             self.massADM = self.mass[-1]
             self.g_tt_ext = np.array(self.g_tt[n_star:-1])
             self.g_rr_ext = np.array(self.g_rr[n_star:-1])
